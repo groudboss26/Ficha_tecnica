@@ -1,0 +1,78 @@
+# 🍣 Receitas Verdemar
+
+Ficha técnica digital das receitas e molhos de sushi da **Peixaria Verdemar** — mobile-first, sem dependências de build, com calculadora de produção em tempo real.
+
+> Transcrição fiel dos documentos operacionais originais (fichas técnicas em papel/PDF), organizada em um app web simples para consulta na cozinha.
+
+## ✨ Funcionalidades
+
+- **Menu por categoria** — Molhos Base, Molhos para Arroz, Molhos Diversos e Recheios & Massas, com filtros em chips.
+- **Medidas padrão originais** — cada receita mostra, sem alterações, os valores exatamente como estavam no documento fonte (receita padrão / receita de produção).
+- **Calculadora de produção ao vivo** — ao abrir uma receita, basta informar a quantidade do ingrediente principal (ex.: `4` kg de gengibre) e todos os demais ingredientes são recalculados proporcionalmente, na hora.
+- **Notas de transcrição** — sempre que um valor precisou ser assumido ou não estava explícito no documento original (ex.: peso da caixa de gengibre, modo de preparo não descrito), isso fica sinalizado no próprio card da receita — nada é inventado silenciosamente.
+- **100% mobile-first** — pensado para ser usado na cozinha, no celular, com modal em bottom sheet, alvos de toque grandes e sem necessidade de instalação.
+
+## 🗂 Estrutura do projeto
+
+```
+receitas-verdemar/
+├── index.html      # estrutura da página (hero, filtros, lista, modal)
+├── style.css        # design system (cores, tipografia, layout responsivo)
+└── script.js         # dados das receitas + lógica de filtro e cálculo
+```
+
+Projeto **estático**, sem framework e sem build step — apenas HTML, CSS e JavaScript puro.
+
+## ▶️ Como rodar
+
+Basta abrir o `index.html` diretamente no navegador, ou servir a pasta com qualquer servidor estático:
+
+```bash
+# Python
+python3 -m http.server 8000
+
+# Node
+npx serve .
+```
+
+Depois acesse `http://localhost:8000`.
+
+## 🧮 Como funciona o cálculo de produção
+
+Cada receita tem um tipo de escala definido em `script.js`:
+
+| Tipo | Como funciona | Exemplo |
+|---|---|---|
+| `weight` | O usuário informa o peso/volume do ingrediente principal. O fator de escala é `valor informado ÷ valor de referência`. | Kg de gengibre, kg de pepino, g de salmão |
+| `multiplier` | O usuário informa quantas vezes quer multiplicar o lote da receita (referência = 1). | Molho Tarê, Molho de Arroz Integral |
+
+Ingredientes marcados como `discrete` (itens contáveis, como ovos ou limões) são arredondados de 0,5 em 0,5 unidade.
+
+## ➕ Adicionando uma nova receita
+
+Edite o array `RECIPES` em `script.js` e adicione um novo objeto seguindo o mesmo formato:
+
+```js
+{
+  id: 'nova-receita',
+  categoria: 'diversos', // base | arroz | diversos | recheios
+  nome: 'Nome da receita',
+  medidasPadrao: ['Texto exatamente como está no documento original'],
+  scale: { type: 'weight', label: 'Ingrediente principal', unit: 'kg', reference: 10 },
+  ingredientes: [
+    { nome: 'Ingrediente', base: 100, unit: 'g', decimals: 0 },
+  ],
+  modoPreparo: 'Descrição do preparo.',
+  nota: 'Opcional — use para sinalizar qualquer suposição feita na transcrição.',
+}
+```
+
+A lista e os filtros são renderizados automaticamente a partir desse array — não é necessário mexer no HTML.
+
+## 📄 Fonte dos dados
+
+Receitas transcritas a partir das fichas técnicas originais da Peixaria Verdemar (documentos em PDF). Alguns valores de referência para o cálculo de produção — como o peso padrão de caixas de insumos — foram assumidos com base em receitas equivalentes do mesmo documento, e estão sinalizados individualmente em cada receita.
+
+## 📌 Uso
+
+Uso interno da Peixaria Verdemar — fichas técnicas de cozinha.

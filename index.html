@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Receitas Verdemar — Fichas Técnicas de Sushi</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar__mark">
+      <span class="topbar__mark-main">Verdemar</span>
+      <span class="topbar__mark-sub">peixaria</span>
+    </div>
+    <div class="topbar__tag">fichas técnicas</div>
+  </header>
+
+  <main>
+    <section class="hero" id="hero">
+      <svg class="hero__waves" viewBox="0 0 400 60" preserveAspectRatio="none" aria-hidden="true">
+        <path class="wave wave--back" d="M0,30 C 50,10 100,50 150,30 C 200,10 250,50 300,30 C 340,15 370,40 400,30 L400,60 L0,60 Z"></path>
+        <path class="wave wave--front" d="M0,38 C 60,22 110,52 170,36 C 220,22 260,52 320,34 C 350,26 380,44 400,36 L400,60 L0,60 Z"></path>
+      </svg>
+
+      <p class="hero__eyebrow">Cozinha · Sushi &amp; Molhos</p>
+      <h1 class="hero__title">Receitas&nbsp;de&nbsp;Sushi</h1>
+      <p class="hero__lead">
+        Seja bem-vindo à página de receitas de sushi. Aqui você encontra as principais
+        receitas e molhos usados na produção da casa — com as medidas padrão originais
+        e cálculo automático de produção para a quantidade que você precisar.
+      </p>
+
+      <div class="hero__stats" role="list">
+        <div class="stat" role="listitem"><span class="stat__num">11</span><span class="stat__label">receitas</span></div>
+        <div class="stat" role="listitem"><span class="stat__num">4</span><span class="stat__label">categorias</span></div>
+        <div class="stat" role="listitem"><span class="stat__num">1</span><span class="stat__label">toque p/ calcular</span></div>
+      </div>
+    </section>
+
+    <nav class="filters" id="filters" aria-label="Filtrar receitas por categoria"></nav>
+
+    <section class="recipe-list" id="recipeList" aria-live="polite"></section>
+  </main>
+
+  <footer class="footer">
+    <p>Fichas técnicas de uso interno — Peixaria Verdemar.</p>
+    <p class="footer__note">Toque em uma receita para ver o modo de preparo e calcular a produção.</p>
+  </footer>
+
+  <div class="modal-backdrop" id="modalBackdrop" tabindex="-1"></div>
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modalTitle">
+    <div class="modal__handle" aria-hidden="true"></div>
+    <button class="modal__close" id="modalClose" aria-label="Fechar receita">✕</button>
+    <div class="modal__content" id="modalContent"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
