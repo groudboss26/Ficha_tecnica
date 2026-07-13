@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Receitas Verdemar — Fichas Técnicas de Sushi</title>
 <link rel="stylesheet" href="style.css" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#101d18" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="apple-touch-icon" href="icon.png" />
 </head>
 <body>
 
@@ -38,6 +43,17 @@
       </div>
     </section>
 
+    <div class="search-container">
+      <div class="search-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="search" id="searchInput" class="search-input" placeholder="Buscar receita ou ingrediente..." aria-label="Buscar receitas" autocomplete="off" />
+        <button id="searchClear" class="search-clear" aria-label="Limpar busca" type="button" style="display: none;">✕</button>
+      </div>
+    </div>
+
     <nav class="filters" id="filters" aria-label="Filtrar receitas por categoria"></nav>
 
     <section class="recipe-list" id="recipeList" aria-live="polite"></section>
@@ -48,12 +64,10 @@
     <p class="footer__note">Toque em uma receita para ver o modo de preparo e calcular a produção.</p>
   </footer>
 
-  <div class="modal-backdrop" id="modalBackdrop" tabindex="-1"></div>
-  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modalTitle">
-    <div class="modal__handle" aria-hidden="true"></div>
+  <dialog class="modal" id="recipeDialog" aria-labelledby="modalTitle">
     <button class="modal__close" id="modalClose" aria-label="Fechar receita">✕</button>
     <div class="modal__content" id="modalContent"></div>
-  </div>
+  </dialog>
 
   <script src="script.js"></script>
 </body>

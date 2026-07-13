@@ -220,8 +220,32 @@ const RECIPES = [
 ];
 
 /* =========================================================
-   Helpers
+   Helpers & Favorites
    ========================================================= */
+
+const FAV_KEY = 'receitas-verdemar-favoritos';
+
+function getFavorites() {
+  try {
+    return JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function isFavorite(id) {
+  return getFavorites().includes(id);
+}
+
+function toggleFavorite(id) {
+  let favs = getFavorites();
+  if (favs.includes(id)) {
+    favs = favs.filter(f => f !== id);
+  } else {
+    favs.push(id);
+  }
+  localStorage.setItem(FAV_KEY, JSON.stringify(favs));
+}
 
 function fmt(n, decimals){
   if (!isFinite(n)) return '0';
@@ -243,19 +267,48 @@ function categoryMeta(id){
   return CATEGORIES.find(c => c.id === id);
 }
 
+function getIncrement(recipe) {
+  if (recipe.scale.type === 'multiplier') {
+    return 0.5;
+  }
+  const unit = recipe.scale.unit;
+  const ref = recipe.scale.reference;
+  
+  if (unit === 'g' || unit === 'ml') {
+    if (ref >= 500) return 100;
+    if (ref >= 100) return 50;
+    return 10;
+  }
+  if (ref >= 10) return 1;
+  return 0.5;
+}
+
 /* =========================================================
-   Rendering — recipe list
+   Rendering — recipe list & Search
    ========================================================= */
 
 const listEl = document.getElementById('recipeList');
 const filtersEl = document.getElementById('filters');
+const searchInput = document.getElementById('searchInput');
+const searchClear = document.getElementById('searchClear');
 
 let activeCategory = 'all';
+let searchQuery = '';
 
 function renderFilters(){
-  const chips = [{ id: 'all', label: 'Todas' }, ...CATEGORIES];
+  const chips = [
+    { id: 'all', label: 'Todas' },
+    { id: 'favoritos', label: '⭐ Favoritas' },
+    ...CATEGORIES
+  ];
+  
   filtersEl.innerHTML = '';
   chips.forEach(chip => {
+    // Apenas exibe a categoria virtual de Favoritas se houver alguma favoritada, ou se for a atual ativa
+    if (chip.id === 'favoritos' && getFavorites().length === 0 && activeCategory !== 'favoritos') {
+      return;
+    }
+
     const btn = document.createElement('button');
     btn.className = 'chip';
     btn.type = 'button';
@@ -272,10 +325,42 @@ function renderFilters(){
 
 function renderList(){
   listEl.innerHTML = '';
-  const cats = activeCategory === 'all' ? CATEGORIES : CATEGORIES.filter(c => c.id === activeCategory);
+  
+  // Filtrar receitas
+  let filtered = RECIPES;
+  
+  if (activeCategory === 'favoritos') {
+    filtered = RECIPES.filter(r => isFavorite(r.id));
+  } else if (activeCategory !== 'all') {
+    filtered = RECIPES.filter(r => r.categoria === activeCategory);
+  }
+  
+  if (searchQuery) {
+    filtered = filtered.filter(r => 
+      r.nome.toLowerCase().includes(searchQuery) ||
+      r.ingredientes.some(ing => ing.nome.toLowerCase().includes(searchQuery))
+    );
+  }
 
-  cats.forEach(cat => {
-    const items = RECIPES.filter(r => r.categoria === cat.id);
+  if (filtered.length === 0) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.className = 'footer__note';
+    emptyMsg.style.textAlign = 'center';
+    emptyMsg.style.padding = '40px 20px';
+    emptyMsg.textContent = searchQuery 
+      ? 'Nenhuma receita encontrada para a busca.' 
+      : 'Nenhuma receita favoritada ainda.';
+    listEl.appendChild(emptyMsg);
+    return;
+  }
+
+  // Obter categorias a exibir
+  const catsToShow = CATEGORIES.filter(cat => 
+    filtered.some(r => r.categoria === cat.id)
+  );
+
+  catsToShow.forEach(cat => {
+    const items = filtered.filter(r => r.categoria === cat.id);
     if (!items.length) return;
 
     const group = document.createElement('div');
@@ -287,6 +372,9 @@ function renderList(){
     group.appendChild(title);
 
     items.forEach(recipe => {
+      const container = document.createElement('div');
+      container.className = 'ticket-container';
+
       const btn = document.createElement('button');
       btn.className = 'ticket';
       btn.type = 'button';
@@ -314,25 +402,54 @@ function renderList(){
 
       btn.appendChild(body);
 
+      // Botão de Favorito
+      const favBtn = document.createElement('button');
+      favBtn.type = 'button';
+      favBtn.className = 'ticket__fav' + (isFavorite(recipe.id) ? ' is-active' : '');
+      favBtn.innerHTML = isFavorite(recipe.id) ? '★' : '☆';
+      favBtn.setAttribute('aria-label', isFavorite(recipe.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos');
+      favBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleFavorite(recipe.id);
+        renderList();
+        renderFilters();
+      });
+      container.appendChild(favBtn);
+
       const chevron = document.createElement('span');
       chevron.className = 'ticket__chevron';
       chevron.textContent = '›';
       btn.appendChild(chevron);
 
       btn.addEventListener('click', () => openModal(recipe));
-      group.appendChild(btn);
+      container.appendChild(btn);
+      group.appendChild(container);
     });
 
     listEl.appendChild(group);
   });
 }
 
+// Eventos de Busca
+searchInput.addEventListener('input', (e) => {
+  searchQuery = e.target.value.toLowerCase().trim();
+  searchClear.style.display = searchQuery ? 'block' : 'none';
+  renderList();
+});
+
+searchClear.addEventListener('click', () => {
+  searchInput.value = '';
+  searchQuery = '';
+  searchClear.style.display = 'none';
+  searchInput.focus();
+  renderList();
+});
+
 /* =========================================================
-   Modal + live scale calculator
+   Modal + live scale calculator (Dialog adaptation)
    ========================================================= */
 
-const modal = document.getElementById('modal');
-const modalBackdrop = document.getElementById('modalBackdrop');
+const dialog = document.getElementById('recipeDialog');
 const modalContent = document.getElementById('modalContent');
 const modalClose = document.getElementById('modalClose');
 
@@ -342,38 +459,85 @@ function openModal(recipe){
   lastFocused = document.activeElement;
   modalContent.innerHTML = buildModalHTML(recipe);
   wireScaleInput(recipe);
+  wireChecklists();
+  wireFavoriteModalBtn(recipe);
 
-  modal.classList.add('is-open');
-  modalBackdrop.classList.add('is-open');
-  modal.setAttribute('aria-hidden', 'false');
+  // Abrir modal nativo
+  dialog.showModal();
   document.body.style.overflow = 'hidden';
 
+  // Seta hash de link direto
+  window.location.hash = recipe.id;
+
   const input = modalContent.querySelector('.scale-panel__input');
-  if (input) setTimeout(() => input.focus({ preventScroll: true }), 260);
+  if (input) setTimeout(() => input.focus({ preventScroll: true }), 100);
 }
 
 function closeModal(){
-  modal.classList.remove('is-open');
-  modalBackdrop.classList.remove('is-open');
-  modal.setAttribute('aria-hidden', 'true');
+  dialog.close();
   document.body.style.overflow = '';
+  
+  // Limpar hash
+  if (window.location.hash) {
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+  }
+  
   if (lastFocused) lastFocused.focus({ preventScroll: true });
 }
 
 modalClose.addEventListener('click', closeModal);
-modalBackdrop.addEventListener('click', closeModal);
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal();
+
+// Evento de fechamento nativo (ex: pressionar a tecla Esc)
+dialog.addEventListener('close', () => {
+  document.body.style.overflow = '';
+  if (window.location.hash) {
+    history.pushState("", document.title, window.location.pathname + window.location.search);
+  }
+});
+
+// Fechar ao clicar no backdrop nativo
+dialog.addEventListener('click', (e) => {
+  const rect = dialog.getBoundingClientRect();
+  const isInDialog = (rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+    rect.left <= e.clientX && e.clientX <= rect.left + rect.width);
+  if (!isInDialog) {
+    closeModal();
+  }
 });
 
 function buildModalHTML(recipe){
   const cat = categoryMeta(recipe.categoria);
   const defaultValue = recipe.scale.reference;
+  const isFav = isFavorite(recipe.id);
 
   const standardList = recipe.medidasPadrao.map(t => `<li>${t}</li>`).join('');
 
+  // Passos interativos do modo de preparo
+  const steps = recipe.modoPreparo
+    .split(/\.\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0)
+    .map((s, idx) => {
+      const text = s.endsWith('.') ? s : s + '.';
+      return `
+        <li class="prep-step">
+          <span class="prep-step__cb">✓</span>
+          <span class="prep-step__text">${text}</span>
+        </li>
+      `;
+    })
+    .join('');
+
+  const inc = getIncrement(recipe);
+  const incLabel = recipe.scale.type === 'weight' ? `${inc} ${recipe.scale.unit}` : `${inc}x`;
+
   return `
-    <span class="mtag" style="border-color:${cat.color}; color:${cat.color}">${cat.label}</span>
+    <div class="mheader">
+      <span class="mtag" style="border-color:${cat.color}; color:${cat.color}">${cat.label}</span>
+      <button class="mfav-btn ${isFav ? 'is-active' : ''}" type="button" data-modal-fav="${recipe.id}" aria-label="${isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}">
+        ${isFav ? '★' : '☆'}
+      </button>
+    </div>
     <h2 class="mtitle" id="modalTitle">${recipe.nome}</h2>
 
     <div class="mstandard">
@@ -388,7 +552,7 @@ function buildModalHTML(recipe){
           class="scale-panel__input"
           type="number"
           inputmode="decimal"
-          step="0.1"
+          step="${inc}"
           min="0"
           value="${defaultValue}"
           data-scale-input
@@ -396,25 +560,38 @@ function buildModalHTML(recipe){
         />
         <span class="scale-panel__unit">${recipe.scale.unit} · ${recipe.scale.label}</span>
       </div>
+      
+      <div class="scale-panel__steps-label">Ajuste Fino</div>
       <div class="scale-panel__steps">
-        <button type="button" class="step-btn" data-step="-1">−1</button>
-        <button type="button" class="step-btn" data-step="0">padrão</button>
-        <button type="button" class="step-btn" data-step="1">+1</button>
+        <button type="button" class="step-btn" data-step-delta="-${inc}">−${incLabel}</button>
+        <button type="button" class="step-btn" data-step-reset>padrão</button>
+        <button type="button" class="step-btn" data-step-delta="${inc}">+${incLabel}</button>
+      </div>
+
+      <div class="scale-panel__steps-label">Multiplicadores rápidos</div>
+      <div class="scale-panel__multipliers">
+        <button type="button" class="step-btn" data-scale-mult="0.5">0.5x</button>
+        <button type="button" class="step-btn" data-scale-mult="1">1x</button>
+        <button type="button" class="step-btn" data-scale-mult="2">2x</button>
+        <button type="button" class="step-btn" data-scale-mult="3">3x</button>
+        <button type="button" class="step-btn" data-scale-mult="5">5x</button>
       </div>
     </div>
 
-    <h3 class="msection-title">Ingredientes calculados</h3>
+    <h3 class="msection-title">Ingredientes calculados <span style="font-size:0.65rem; color:var(--text-faint); font-weight:normal; text-transform:none;">(toque para riscar)</span></h3>
     <ul class="ingredients" data-ingredients>
       ${recipe.ingredientes.map((ing, i) => `
-        <li>
+        <li class="ing-item">
           <span class="ing__name">${ing.nome}</span>
           <span class="ing__amount" data-ing-index="${i}">—</span>
         </li>
       `).join('')}
     </ul>
 
-    <h3 class="msection-title">Modo de preparo</h3>
-    <p class="mprep">${recipe.modoPreparo}</p>
+    <h3 class="msection-title">Modo de preparo <span style="font-size:0.65rem; color:var(--text-faint); font-weight:normal; text-transform:none;">(toque para marcar passos)</span></h3>
+    <ul class="prep-list">
+      ${steps}
+    </ul>
 
     ${recipe.observacao ? `<div class="mnote"><strong>Observação: </strong>${recipe.observacao}</div>` : ''}
     ${recipe.nota ? `<div class="mnote"><strong>Nota de transcrição: </strong>${recipe.nota}</div>` : ''}
@@ -424,6 +601,7 @@ function buildModalHTML(recipe){
 function wireScaleInput(recipe){
   const input = modalContent.querySelector('[data-scale-input]');
   const amountEls = modalContent.querySelectorAll('[data-ing-index]');
+  const multBtns = modalContent.querySelectorAll('[data-scale-mult]');
 
   function update(){
     let value = parseFloat(input.value);
@@ -431,31 +609,119 @@ function wireScaleInput(recipe){
 
     const factor = recipe.scale.type === 'weight'
       ? value / recipe.scale.reference
-      : value; // multiplier: reference é 1
+      : value;
 
     recipe.ingredientes.forEach((ing, i) => {
       const result = scaledIngredient(ing, factor);
       amountEls[i].textContent = `${result.text} ${ing.unit}`;
     });
+
+    // Atualizar estados dos botões multiplicadores
+    const currentMult = recipe.scale.type === 'weight'
+      ? value / recipe.scale.reference
+      : value;
+
+    multBtns.forEach(btn => {
+      const multVal = parseFloat(btn.getAttribute('data-scale-mult'));
+      if (Math.abs(currentMult - multVal) < 0.001) {
+        btn.classList.add('is-active');
+      } else {
+        btn.classList.remove('is-active');
+      }
+    });
   }
 
   input.addEventListener('input', update);
 
-  modalContent.querySelectorAll('.step-btn').forEach(btn => {
+  modalContent.querySelectorAll('.step-btn[data-step-delta]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const step = btn.getAttribute('data-step');
-      if (step === '0'){
-        input.value = recipe.scale.reference;
-      } else {
-        const delta = recipe.scale.type === 'weight' ? Number(step) : Number(step) * 0.5;
-        const current = parseFloat(input.value) || 0;
-        input.value = Math.max(0, current + delta);
-      }
+      const delta = parseFloat(btn.getAttribute('data-step-delta'));
+      const current = parseFloat(input.value) || 0;
+      input.value = Math.max(0, current + delta);
+      update();
+    });
+  });
+
+  const resetBtn = modalContent.querySelector('.step-btn[data-step-reset]');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      input.value = recipe.scale.reference;
+      update();
+    });
+  }
+
+  multBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mult = parseFloat(btn.getAttribute('data-scale-mult'));
+      input.value = recipe.scale.type === 'weight'
+        ? recipe.scale.reference * mult
+        : mult;
       update();
     });
   });
 
   update();
+}
+
+function wireChecklists() {
+  modalContent.querySelectorAll('.ing-item').forEach(item => {
+    item.addEventListener('click', () => {
+      item.classList.toggle('is-checked');
+    });
+  });
+
+  modalContent.querySelectorAll('.prep-step').forEach(step => {
+    step.addEventListener('click', () => {
+      step.classList.toggle('is-checked');
+    });
+  });
+}
+
+function wireFavoriteModalBtn(recipe) {
+  const favBtn = modalContent.querySelector('[data-modal-fav]');
+  if (favBtn) {
+    favBtn.addEventListener('click', () => {
+      toggleFavorite(recipe.id);
+      const isFav = isFavorite(recipe.id);
+      favBtn.classList.toggle('is-active', isFav);
+      favBtn.innerHTML = isFav ? '★' : '☆';
+      favBtn.setAttribute('aria-label', isFav ? 'Remover dos favoritos' : 'Adicionar aos favoritos');
+      renderList();
+      renderFilters();
+    });
+  }
+}
+
+/* =========================================================
+   Hash Router (Deep Linking)
+   ========================================================= */
+
+function handleHash() {
+  const hash = window.location.hash.substring(1);
+  if (hash) {
+    const recipe = RECIPES.find(r => r.id === hash);
+    if (recipe) {
+      openModal(recipe);
+      return;
+    }
+  }
+  if (dialog.open) {
+    closeModal();
+  }
+}
+
+window.addEventListener('hashchange', handleHash);
+
+/* =========================================================
+   PWA Service Worker Registration
+   ========================================================= */
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Service Worker registrado com sucesso:', reg.scope))
+      .catch(err => console.error('Erro ao registrar Service Worker:', err));
+  });
 }
 
 /* =========================================================
@@ -464,3 +730,4 @@ function wireScaleInput(recipe){
 
 renderFilters();
 renderList();
+handleHash(); // Trata deep link inicial

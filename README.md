@@ -8,17 +8,26 @@ Ficha técnica digital das receitas e molhos de sushi da **Peixaria Verdemar** �
 
 - **Menu por categoria** — Molhos Base, Molhos para Arroz, Molhos Diversos e Recheios & Massas, com filtros em chips.
 - **Medidas padrão originais** — cada receita mostra, sem alterações, os valores exatamente como estavam no documento fonte (receita padrão / receita de produção).
-- **Calculadora de produção ao vivo** — ao abrir uma receita, basta informar a quantidade do ingrediente principal (ex.: `4` kg de gengibre) e todos os demais ingredientes são recalculados proporcionalmente, na hora.
-- **Notas de transcrição** — sempre que um valor precisou ser assumido ou não estava explícito no documento original (ex.: peso da caixa de gengibre, modo de preparo não descrito), isso fica sinalizado no próprio card da receita — nada é inventado silenciosamente.
-- **100% mobile-first** — pensado para ser usado na cozinha, no celular, com modal em bottom sheet, alvos de toque grandes e sem necessidade de instalação.
+- **Calculadora de produção inteligente** — além de digitar o valor, use os atalhos de multiplicadores rápidos (`0.5x`, `1x`, `2x`, `3x`, `5x`) e botões de ajuste fino com passos inteligentes adaptados à unidade (ex: `±100g` ou `±1kg`).
+- **Barra de busca** — encontre receitas rapidamente por nome ou ingredientes em tempo real.
+- **Sistema de favoritos** — favorite receitas com estrela para fixá-las no topo ou filtrar pelo chip de filtro rápido "⭐ Favoritas".
+- **Modo Cozinha (Checklist)** — toque em ingredientes ou passos do preparo para riscá-los, facilitando o acompanhamento durante o preparo.
+- **Instalável e 100% Offline (PWA)** — pode ser adicionado à tela inicial do celular e roda sem internet na peixaria usando cache local.
+- **Deep links (Hash router)** — acesse receitas diretamente pela URL (ex: `index.html#tare`).
+- **Notas de transcrição** — notas detalhando suposições feitas na ficha original.
+- **Acessibilidade nativa** — modal migrado para a tag HTML5 `<dialog>`, garantindo retenção de foco nativa.
 
 ## 🗂 Estrutura do projeto
 
 ```
 receitas-verdemar/
-├── index.html      # estrutura da página (hero, filtros, lista, modal)
-├── style.css        # design system (cores, tipografia, layout responsivo)
-└── script.js         # dados das receitas + lógica de filtro e cálculo
+├── index.html       # esqueleto da página (hero, busca, filtros, modal)
+├── style.css        # design tokens, tema nori e layouts responsivos
+├── script.js        # banco de dados das receitas e lógica da SPA
+├── manifest.json    # manifesto de configuração do PWA
+├── sw.js            # service worker para cache e suporte offline
+├── icon.svg         # ícone vetorizado do aplicativo PWA
+└── bg.png           # pano de fundo com caligrafia kanji minimalista
 ```
 
 Projeto **estático**, sem framework e sem build step — apenas HTML, CSS e JavaScript puro.
