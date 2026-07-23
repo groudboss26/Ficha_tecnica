@@ -6,7 +6,7 @@ Ficha técnica digital das receitas e molhos de sushi da **Peixaria Verdemar** �
 
 ## ✨ Funcionalidades
 
-- **Menu por categoria** — Molhos Base, Molhos para Arroz, Molhos Diversos e Recheios & Massas, com filtros em chips.
+- **Menu por categoria** — Molhos de Acompanhamento, Molhos para Arroz, Molhos Diversos e Recheios & Massas, com filtros em chips.
 - **Medidas padrão originais** — cada receita mostra, sem alterações, os valores exatamente como estavam no documento fonte (receita padrão / receita de produção).
 - **Calculadora de produção inteligente** — além de digitar o valor, use os atalhos de multiplicadores rápidos (`0.5x`, `1x`, `2x`, `3x`, `5x`) e botões de ajuste fino com passos inteligentes adaptados à unidade (ex: `±100g` ou `±1kg`).
 - **Barra de busca** — encontre receitas rapidamente por nome ou ingredientes em tempo real.

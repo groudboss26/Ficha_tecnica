@@ -3,7 +3,7 @@
    ========================================================= */
 
 const CATEGORIES = [
-  { id: 'base',      label: 'Molhos Base',        color: 'var(--wasabi)' },
+  { id: 'base',      label: 'Molhos de Acompanhamento', color: 'var(--wasabi)' },
   { id: 'arroz',     label: 'Molhos para Arroz',   color: 'var(--amber)' },
   { id: 'diversos',  label: 'Molhos Diversos',     color: 'var(--sea)' },
   { id: 'recheios',  label: 'Recheios & Massas',   color: 'var(--coral)' },
@@ -96,7 +96,7 @@ const RECIPES = [
   },
   {
     id: 'tare',
-    categoria: 'arroz',
+    categoria: 'base',
     nome: 'Molho Tarê',
     medidasPadrao: [
       'Receita: 1,5 L de saquê + 4 L de shoyo + 10 L de água + 15 pacotes de açúcar refinado + 1 abacaxi cortado em rodelas',
