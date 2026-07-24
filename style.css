@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
-/* ---------- Tokens ---------- */
+/* ---------- Tokens (tema escuro — padrão) ---------- */
 :root{
   --bg: #101d18;
   --bg-elevated: #16261f;
@@ -13,11 +13,11 @@
   --text-dim: #b7c3b6;
   --text-faint: #7f9089;
 
-  --amber: #dd9a4b;     /* soy / tarê */
+  --amber: #dd9a4b;
   --amber-strong: #e8ac66;
-  --wasabi: #a4c93e;    /* molhos base */
-  --sea: #4bb6a8;       /* molhos diversos */
-  --coral: #e2643a;     /* recheios & massas */
+  --wasabi: #a4c93e;
+  --sea: #4bb6a8;
+  --coral: #e2643a;
 
   --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
   --font-body: 'Inter', 'Segoe UI', sans-serif;
@@ -26,6 +26,32 @@
   --radius: 14px;
   --radius-sm: 8px;
   --shadow-lift: 0 12px 32px rgba(0,0,0,0.35);
+
+  /* Variável para o topbar blur (muda com o tema) */
+  --topbar-bg: rgba(16,29,24,0.9);
+}
+
+/* ---------- Tema Claro ---------- */
+[data-theme="light"]{
+  --bg: #f2ede0;
+  --bg-elevated: #e8e2d4;
+  --surface: #ddd7c7;
+  --surface-2: #d0c9b8;
+  --line: rgba(16,29,24,0.12);
+  --line-strong: rgba(16,29,24,0.24);
+
+  --text: #101d18;
+  --text-dim: #3a5246;
+  --text-faint: #6b7f70;
+
+  --amber: #b8781e;
+  --amber-strong: #c98a2a;
+  --wasabi: #5a8a10;
+  --sea: #1f8a7c;
+  --coral: #c04020;
+
+  --shadow-lift: 0 12px 32px rgba(0,0,0,0.12);
+  --topbar-bg: rgba(242,237,224,0.9);
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -52,17 +78,41 @@ button{ font-family: inherit; }
 
 /* ---------- Topbar ---------- */
 .topbar{
-  display:flex; align-items:baseline; justify-content:space-between;
+  display:flex; align-items:center; justify-content:space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--line);
   position: sticky; top:0; z-index: 20;
-  background: rgba(16,29,24,0.9);
+  background: var(--topbar-bg);
   backdrop-filter: blur(8px);
 }
 .topbar__mark{ display:flex; align-items:baseline; gap:8px; }
 .topbar__mark-main{ font-family: var(--font-display); font-weight:700; font-size: 1.05rem; letter-spacing: 0.01em; }
 .topbar__mark-sub{ font-size: 0.7rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.14em; }
 .topbar__tag{ font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; }
+
+/* Botão de alternância de tema */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover {
+  background: var(--surface-2);
+  border-color: var(--wasabi);
+  transform: scale(1.08) rotate(12deg);
+}
+.theme-toggle:active { transform: scale(0.93); }
+.theme-toggle:focus-visible { outline: 2px solid var(--amber-strong); outline-offset: 2px; }
 
 /* ---------- Hero ---------- */
 .hero{

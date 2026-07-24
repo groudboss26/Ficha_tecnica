@@ -132,11 +132,11 @@ Próximas melhorias para priorizar conforme a necessidade real da cozinha:
 - [x] Campo de busca por nome de receita/ingrediente.
 - [x] Otimização de performance da busca (debounce + índice pré-computado).
 - [x] Botão "favoritar" receitas mais usadas (persistido via `localStorage`).
-- [x] Modo "check-list" no preparo (marcar etapas concluídas - estendido também para ingredientes).
+- [x] Modo "check-list" no preparo (marcar etapas conluídas - estendido também para ingredientes).
 - [x] Deep link por receita (`#gari`, por exemplo) para compartilhar direto pelo WhatsApp.
+- [x] Modo claro/escuro com botão no topbar e persistência em `localStorage`.
 - [ ] Exportar/imprimir a receita já calculada (útil para colar na estação de trabalho).
 - [ ] Editor simples (formulário) para adicionar/editar receitas sem mexer no código — só faz sentido se o time crescer ou a lista ficar grande.
-- [ ] Modo claro/escuro (hoje só existe o tema escuro).
 
 ---
 

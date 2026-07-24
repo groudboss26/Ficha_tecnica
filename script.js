@@ -2,6 +2,12 @@
    RECEITAS VERDEMAR — dados transcritos das fichas técnicas
    ========================================================= */
 
+// Aplica o tema salvo IMEDIATAMENTE (antes do render) para evitar flash de cor errada
+(function() {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+})();
+
 const CATEGORIES = [
   { id: 'base',      label: 'Molhos de Acompanhamento', color: 'var(--wasabi)' },
   { id: 'arroz',     label: 'Molhos para Arroz',   color: 'var(--amber)' },
@@ -798,6 +804,36 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.error('Erro ao registrar Service Worker:', err));
   });
 }
+
+/* =========================================================
+   Tema claro / escuro
+   ========================================================= */
+
+const themeToggle = document.getElementById('themeToggle');
+
+function getTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+}
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    themeToggle.textContent = '☀️';
+    themeToggle.setAttribute('aria-label', 'Alternar para tema escuro');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    themeToggle.textContent = '🌙';
+    themeToggle.setAttribute('aria-label', 'Alternar para tema claro');
+  }
+  localStorage.setItem('theme', theme);
+}
+
+// Sincroniza o ícone com o tema já aplicado pelo IIFE do topo
+applyTheme(getTheme());
+
+themeToggle.addEventListener('click', () => {
+  applyTheme(getTheme() === 'dark' ? 'light' : 'dark');
+});
 
 /* =========================================================
    Init
