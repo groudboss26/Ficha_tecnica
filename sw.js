@@ -1,9 +1,17 @@
-const CACHE_NAME = 'receitas-verdemar-v2';
+const CACHE_NAME = 'receitas-verdemar-v3';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
-  './script.js',
+  './app.js',
+  './scripts/utils/helpers.js',
+  './scripts/models/RecipeModel.js',
+  './scripts/views/FilterView.js',
+  './scripts/views/RecipeListView.js',
+  './scripts/views/ModalView.js',
+  './scripts/views/ThemeView.js',
+  './scripts/controllers/PWAController.js',
+  './scripts/controllers/RecipeController.js',
   './manifest.json',
   './icon.svg',
   './icon.png',
