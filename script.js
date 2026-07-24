@@ -748,30 +748,35 @@ window.addEventListener('hashchange', handleHash);
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
 
-    // Elementos do toast de atualização
     const updateToast   = document.getElementById('updateToast');
     const updateBtn     = document.getElementById('updateBtn');
     const updateDismiss = document.getElementById('updateDismiss');
     let pendingSW = null;
 
-    // Exibe o toast com slide-up animado
+    // Exibe o toast: remove hidden, depois adiciona classe via RAF para garantir
+    // que o browser pinte o estado inicial (opacity:0) antes de animar para visível
     function showUpdateToast(sw) {
+      if (pendingSW) return; // já exibido
       pendingSW = sw;
       updateToast.hidden = false;
-      // Força reflow para a transição CSS funcionar corretamente
-      updateToast.offsetHeight; // eslint-disable-line no-unused-expressions
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          updateToast.classList.add('update-toast--visible');
+        });
+      });
     }
 
-    // Esconde o toast
     function hideUpdateToast() {
-      updateToast.hidden = true;
-      pendingSW = null;
+      updateToast.classList.remove('update-toast--visible');
+      // Esconde do DOM após a transição terminar
+      updateToast.addEventListener('transitionend', () => {
+        updateToast.hidden = true;
+        pendingSW = null;
+      }, { once: true });
     }
 
-    // Botão "Atualizar": manda SKIP_WAITING e recarrega quando o novo SW assumir
     updateBtn.addEventListener('click', () => {
       if (!pendingSW) return;
-      // Quando o SW mudar para ativo, recarrega a página
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         window.location.reload();
       }, { once: true });
@@ -779,26 +784,33 @@ if ('serviceWorker' in navigator) {
       hideUpdateToast();
     });
 
-    // Botão "✕": dispensa sem atualizar
     updateDismiss.addEventListener('click', hideUpdateToast);
 
-    // Registra o SW e verifica se há versão em espera
-    navigator.serviceWorker.register('./sw.js')
+    // Rastreia um SW em instalação e exibe o toast quando ele entrar em waiting
+    function trackInstalling(sw) {
+      if (!sw) return;
+      sw.addEventListener('statechange', () => {
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateToast(sw);
+        }
+      });
+    }
+
+    // updateViaCache: 'none' — força o browser a sempre buscar sw.js sem cache de HTTP
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
       .then(reg => {
-        // Novo SW já estava esperando antes de registrar (reload com SW em waiting)
+        // Já há um SW aguardando (ex: usuário dispensou o toast na visita anterior)
         if (reg.waiting) {
           showUpdateToast(reg.waiting);
+          return;
         }
-
-        // SW recém instalado entra em waiting
+        // SW ainda está instalando quando o .then() resolveu (race condition)
+        if (reg.installing) {
+          trackInstalling(reg.installing);
+        }
+        // Futuras atualizações detectadas durante esta sessão
         reg.addEventListener('updatefound', () => {
-          const newSW = reg.installing;
-          newSW.addEventListener('statechange', () => {
-            if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-              // Página já tem um SW ativo — logo, essa é uma atualização real
-              showUpdateToast(newSW);
-            }
-          });
+          trackInstalling(reg.installing);
         });
       })
       .catch(err => console.error('Erro ao registrar Service Worker:', err));
