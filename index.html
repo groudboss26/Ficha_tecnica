@@ -69,6 +69,14 @@
     <div class="modal__content" id="modalContent"></div>
   </dialog>
 
+  <!-- Toast de atualização PWA -->
+  <div id="updateToast" class="update-toast" role="alert" aria-live="assertive" hidden>
+    <span class="update-toast__icon">🍣</span>
+    <span class="update-toast__msg">Nova versão disponível!</span>
+    <button id="updateBtn" class="update-toast__btn" type="button">Atualizar</button>
+    <button id="updateDismiss" class="update-toast__dismiss" type="button" aria-label="Dispensar">✕</button>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>

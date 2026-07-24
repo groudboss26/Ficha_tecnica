@@ -121,6 +121,7 @@ Se for adicionar novas seções/páginas, manter esses tokens (`:root` em `style
 - **Sem persistência centralizada**: qualquer alteração de receitas exige editar `script.js` e publicar de novo. Não há CMS nem edição pela interface (embora haja `localStorage` para a lista de favoritos).
 - **Sem testes automatizados**: projeto pequeno o suficiente para ser testado manualmente, mas se crescer vale considerar testes de unidade para `scaledIngredient()`.
 - **Alguns dados são inferidos**: receitas com o campo `nota` preenchido têm valores assumidos (não vinham explícitos no documento original). Ver seção 3 e os próprios cards no app.
+- **DOM totalmente reconstruído a cada `renderList()`**: `listEl.innerHTML = ''` destruói e recria todos os cards. Aceitável no volume atual de receitas, mas se o catálogo crescer muito, vale migrar para atualização incremental (diff de DOM ou Virtual DOM mínimo).
 
 ---
 
@@ -129,6 +130,7 @@ Se for adicionar novas seções/páginas, manter esses tokens (`:root` em `style
 Próximas melhorias para priorizar conforme a necessidade real da cozinha:
 
 - [x] Campo de busca por nome de receita/ingrediente.
+- [x] Otimização de performance da busca (debounce + índice pré-computado).
 - [x] Botão "favoritar" receitas mais usadas (persistido via `localStorage`).
 - [x] Modo "check-list" no preparo (marcar etapas concluídas - estendido também para ingredientes).
 - [x] Deep link por receita (`#gari`, por exemplo) para compartilhar direto pelo WhatsApp.
@@ -144,3 +146,112 @@ Próximas melhorias para priorizar conforme a necessidade real da cozinha:
 - Nunca "arrumar" ou arredondar um valor do documento original sem deixar isso registrado no campo `nota`.
 - Ao adicionar uma unidade de medida nova, conferir se `decimals` faz sentido (ex.: litros geralmente `2` casas, gramas grandes `0` casas).
 - Manter `RECIPES` ordenado por categoria só por organização visual do arquivo — a ordem de exibição real é controlada por `CATEGORIES`, não pela ordem do array.
+
+---
+
+## 9. Arquitetura de busca
+
+A busca foi otimizada em 3 camadas independentes:
+
+### 9.1 Índice pré-computado (`SEARCH_INDEX_MAP`)
+
+Na inicialização do script, cada receita gera uma string única normalizada (sem acentos, em lowercase) com nome + todos os ingredientes:
+
+```js
+const SEARCH_INDEX = RECIPES.map(r => ({
+  id: r.id,
+  text: normalizeText([r.nome, ...r.ingredientes.map(i => i.nome)].join(' ')),
+}));
+const SEARCH_INDEX_MAP = new Map(SEARCH_INDEX.map(e => [e.id, e.text]));
+```
+
+Durante a busca, o filtro usa `SEARCH_INDEX_MAP.get(r.id)` — lookup O(1), sem nenhum processamento de string em runtime.
+
+### 9.2 Debounce no evento `input`
+
+O evento `input` da barra de busca é envolto em `debounce(fn, 150ms)` — `renderList()` só é chamado 150 ms depois da última tecla, evitando renders desnecessários enquanto o usuário ainda está digitando.
+
+### 9.3 Agrupamento por categoria com `Map` (passagem única)
+
+Ao invés de filtrar o array duas vezes (uma para descobrir quais categorias exibir, outra para buscar os itens de cada categoria), usa-se um `Map` populado em uma única iteração:
+
+```js
+const groupMap = new Map(CATEGORIES.map(c => [c.id, []]));
+filtered.forEach(r => groupMap.get(r.categoria)?.push(r));
+```
+
+Isso reduz de O(n × k) para O(n + k), onde `n` = receitas e `k` = categorias.
+
+### 9.4 Normalização de acentos (`normalizeText`)
+
+Toda a normalização de texto passa por uma única função:
+
+```js
+function normalizeText(str) {
+  return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+```
+
+- `normalize('NFD')` decomposta caracteres acentuados em base + diacítico (`ç` → `c` + `,`)
+- A regex `/[\u0300-\u036f]/g` remove todos os diacíticos resultantes
+
+| Usuário digita | Encontra |
+|---|---|
+| `acucar` | `açúcar` ✅ |
+| `salmao` | `salmão` ✅ |
+| `salmão` | `salmão` ✅ |
+| `açúcar` | `açúcar` ✅ |
+| `gengibre` | `gengibre` ✅ |
+
+A mesma função é aplicada ao query do usuário antes de comparar com o índice, garantindo consistência em ambos os lados.
+
+---
+
+## 10. Fluxo de atualização PWA
+
+Quando uma nova versão dos arquivos é publicada, o Service Worker (`sw.js`) detecta a mudança e entra em estado **waiting**. A página exibe um toast para o usuário confirmar — ao clicar em **Atualizar**, o novo SW assume o controle e a aba recarrega com a versão mais recente.
+
+### Diagrama de estados
+
+```
+Novo deploy publicado
+      │
+      ▼
+SW instalado → estado: installing
+      │
+      ▼
+SW pronto    → estado: waiting  ──► toast exibido para o usuário
+      │                                       │
+      │           usuário clica "Atualizar"   │
+      │◄──────────────────────────────────────┘
+      ▼
+página envia  { type: 'SKIP_WAITING' }
+      │
+      ▼
+SW ativo     → estado: activated
+      │
+      ▼
+controllerchange event → window.location.reload()
+```
+
+### Arquivos envolvidos
+
+| Arquivo | Papel |
+|---|---|
+| `sw.js` | Remove `skipWaiting()` automático do `install`; responde a `{ type: 'SKIP_WAITING' }` |
+| `script.js` | Detecta `reg.waiting` e `updatefound`; exibe toast; manda mensagem; recarrega no `controllerchange` |
+| `index.html` | Elemento `#updateToast` com botões `#updateBtn` e `#updateDismiss` |
+| `style.css` | Estilos do toast: slide-up animado com `cubic-bezier`, borda em `--wasabi` |
+
+### Regra ao publicar nova versão
+
+**Sempre que os arquivos forem atualizados, incremente o `CACHE_NAME` em `sw.js`:**
+
+```js
+// Antes
+const CACHE_NAME = 'receitas-verdemar-v2';
+// Depois
+const CACHE_NAME = 'receitas-verdemar-v3';
+```
+
+Isso garante que o browser reconheça o arquivo como diferente e instale o novo SW, disparando o fluxo de notificação para o usuário.

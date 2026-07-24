@@ -1,4 +1,4 @@
-const CACHE_NAME = 'receitas-verdemar-v1';
+const CACHE_NAME = 'receitas-verdemar-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -10,13 +10,20 @@ const ASSETS = [
   './bg.png'
 ];
 
-// Install Event
+// Install Event — NÃO chama skipWaiting() automaticamente.
+// O novo SW entra em estado "waiting" e aguarda a página mandar SKIP_WAITING.
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
+});
+
+// Mensagem da página: quando o usuário confirmar a atualização,
+// a página envia { type: 'SKIP_WAITING' } e o SW assume o controle.
+self.addEventListener('message', (e) => {
+  if (e.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Activate Event

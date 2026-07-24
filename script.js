@@ -295,6 +295,29 @@ const searchClear = document.getElementById('searchClear');
 let activeCategory = 'all';
 let searchQuery = '';
 
+// Normalização de texto: lowercase + remove acentos/diacíticos (NFD)
+// Permite buscar 'acucar' e encontrar 'açúcar', 'gengibre' encontrar 'gengibre', etc.
+function normalizeText(str) {
+  return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Índice de busca pré-computado na carga — sem toLowerCase() nem normalize() em runtime
+const SEARCH_INDEX = RECIPES.map(r => ({
+  id: r.id,
+  text: normalizeText([r.nome, ...r.ingredientes.map(i => i.nome)].join(' ')),
+}));
+// Map para lookup O(1) por id
+const SEARCH_INDEX_MAP = new Map(SEARCH_INDEX.map(e => [e.id, e.text]));
+
+// Utilitário de debounce
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
 function renderFilters(){
   const chips = [
     { id: 'all', label: 'Todas' },
@@ -336,10 +359,8 @@ function renderList(){
   }
   
   if (searchQuery) {
-    filtered = filtered.filter(r => 
-      r.nome.toLowerCase().includes(searchQuery) ||
-      r.ingredientes.some(ing => ing.nome.toLowerCase().includes(searchQuery))
-    );
+    // Usa o índice pré-computado — sem toLowerCase() em tempo de execução
+    filtered = filtered.filter(r => SEARCH_INDEX_MAP.get(r.id)?.includes(searchQuery));
   }
 
   if (filtered.length === 0) {
@@ -354,13 +375,13 @@ function renderList(){
     return;
   }
 
-  // Obter categorias a exibir
-  const catsToShow = CATEGORIES.filter(cat => 
-    filtered.some(r => r.categoria === cat.id)
-  );
+  // Agrupar por categoria em única passagem (evita double-filter)
+  const groupMap = new Map(CATEGORIES.map(c => [c.id, []]));
+  filtered.forEach(r => groupMap.get(r.categoria)?.push(r));
+  const catsToShow = CATEGORIES.filter(cat => (groupMap.get(cat.id) ?? []).length > 0);
 
   catsToShow.forEach(cat => {
-    const items = filtered.filter(r => r.categoria === cat.id);
+    const items = groupMap.get(cat.id);
     if (!items.length) return;
 
     const group = document.createElement('div');
@@ -430,12 +451,14 @@ function renderList(){
   });
 }
 
-// Eventos de Busca
-searchInput.addEventListener('input', (e) => {
-  searchQuery = e.target.value.toLowerCase().trim();
+// Eventos de Busca — debounce de 150ms evita renderizar a cada tecla
+const handleSearchInput = debounce((e) => {
+  // normalizeText garante busca sem acento: 'acucar' encontra 'açúcar'
+  searchQuery = normalizeText(e.target.value.trim());
   searchClear.style.display = searchQuery ? 'block' : 'none';
   renderList();
-});
+}, 150);
+searchInput.addEventListener('input', handleSearchInput);
 
 searchClear.addEventListener('click', () => {
   searchInput.value = '';
@@ -718,8 +741,60 @@ window.addEventListener('hashchange', handleHash);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+
+    // Elementos do toast de atualização
+    const updateToast   = document.getElementById('updateToast');
+    const updateBtn     = document.getElementById('updateBtn');
+    const updateDismiss = document.getElementById('updateDismiss');
+    let pendingSW = null;
+
+    // Exibe o toast com slide-up animado
+    function showUpdateToast(sw) {
+      pendingSW = sw;
+      updateToast.hidden = false;
+      // Força reflow para a transição CSS funcionar corretamente
+      updateToast.offsetHeight; // eslint-disable-line no-unused-expressions
+    }
+
+    // Esconde o toast
+    function hideUpdateToast() {
+      updateToast.hidden = true;
+      pendingSW = null;
+    }
+
+    // Botão "Atualizar": manda SKIP_WAITING e recarrega quando o novo SW assumir
+    updateBtn.addEventListener('click', () => {
+      if (!pendingSW) return;
+      // Quando o SW mudar para ativo, recarrega a página
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      }, { once: true });
+      pendingSW.postMessage({ type: 'SKIP_WAITING' });
+      hideUpdateToast();
+    });
+
+    // Botão "✕": dispensa sem atualizar
+    updateDismiss.addEventListener('click', hideUpdateToast);
+
+    // Registra o SW e verifica se há versão em espera
     navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('Service Worker registrado com sucesso:', reg.scope))
+      .then(reg => {
+        // Novo SW já estava esperando antes de registrar (reload com SW em waiting)
+        if (reg.waiting) {
+          showUpdateToast(reg.waiting);
+        }
+
+        // SW recém instalado entra em waiting
+        reg.addEventListener('updatefound', () => {
+          const newSW = reg.installing;
+          newSW.addEventListener('statechange', () => {
+            if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+              // Página já tem um SW ativo — logo, essa é uma atualização real
+              showUpdateToast(newSW);
+            }
+          });
+        });
+      })
       .catch(err => console.error('Erro ao registrar Service Worker:', err));
   });
 }
