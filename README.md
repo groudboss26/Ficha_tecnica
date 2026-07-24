@@ -21,16 +21,29 @@ Ficha técnica digital das receitas e molhos de sushi da **Peixaria Verdemar** �
 
 ```
 receitas-verdemar/
-├── index.html       # esqueleto da página (hero, busca, filtros, modal)
-├── style.css        # design tokens, tema nori e layouts responsivos
-├── script.js        # banco de dados das receitas e lógica da SPA
-├── manifest.json    # manifesto de configuração do PWA
-├── sw.js            # service worker para cache e suporte offline
-├── icon.svg         # ícone vetorizado do aplicativo PWA
-└── bg.png           # pano de fundo com caligrafia kanji minimalista
+├── app.js             # ponto de entrada principal da aplicação (init de theme, controllers e PWA)
+├── index.html          # esqueleto da página (hero, busca, filtros, modal)
+├── style.css           # design tokens, tema nori e layouts responsivos
+├── manifest.json       # manifesto de configuração do PWA
+├── sw.js               # service worker para cache e suporte offline
+├── icon.svg            # ícone vetorizado do aplicativo PWA
+├── bg.png              # pano de fundo com caligrafia kanji minimalista
+└── scripts/            # arquitetura modular MVC (ES6 Modules)
+    ├── models/
+    │   └── RecipeModel.js     # banco de dados das receitas (RECIPES), categorias e cálculo
+    ├── views/
+    │   ├── FilterView.js      # renderização dos chips de filtros
+    │   ├── RecipeListView.js  # renderização da lista e tickets de receitas
+    │   ├── ModalView.js       # modal <dialog> e calculadora de produção
+    │   └── ThemeView.js       # gerenciamento do tema claro/escuro
+    ├── controllers/
+    │   ├── RecipeController.js# orquestrador da lógica de busca, filtros e modais
+    │   └── PWAController.js   # registro de SW e atualizações do PWA
+    └── utils/
+        └── helpers.js         # utilitários (debounce, normalizeText, fmt)
 ```
 
-Projeto **estático**, sem framework e sem build step — apenas HTML, CSS e JavaScript puro.
+Projeto **estático**, sem framework e sem build step — apenas HTML, CSS e JavaScript ES6 puro.
 
 ## ▶️ Como rodar
 
@@ -48,7 +61,7 @@ Depois acesse `http://localhost:8000`.
 
 ## 🧮 Como funciona o cálculo de produção
 
-Cada receita tem um tipo de escala definido em `script.js`:
+Cada receita tem um tipo de escala definido em `scripts/models/RecipeModel.js`:
 
 | Tipo | Como funciona | Exemplo |
 |---|---|---|
@@ -59,7 +72,7 @@ Ingredientes marcados como `discrete` (itens contáveis, como ovos ou limões) s
 
 ## ➕ Adicionando uma nova receita
 
-Edite o array `RECIPES` em `script.js` e adicione um novo objeto seguindo o mesmo formato:
+Edite o array `RECIPES` em `scripts/models/RecipeModel.js` e adicione um novo objeto seguindo o mesmo formato:
 
 ```js
 {
